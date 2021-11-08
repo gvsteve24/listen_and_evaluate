@@ -1,0 +1,39 @@
+section {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+#video-player {
+    width: 640px;
+    height: 360px;
+}
+
+.control-bar {
+    height: 80px;
+    display: flex;
+    margin-top: 30px;
+    justify-content: center;
+}
+
+.space {
+    width: 25px;
+}
+
+.button3 {
+    width: 50px;
+    height: 50px;
+}
+
+.circle {
+    height: 50px;
+    width: 50px;
+    position: absolute;
+    border-radius: 500%;
+    background-color: darkgreen;
+}
+
+.on-record {
+    background-color: #FF5D6E;
+}
