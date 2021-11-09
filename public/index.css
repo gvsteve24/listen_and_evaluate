@@ -29,9 +29,8 @@ section {
 .circle {
     height: 50px;
     width: 50px;
-    position: absolute;
     border-radius: 500%;
-    background-color: darkgreen;
+    background-color: #2EB872;
 }
 
 .on-record {
