@@ -1,18 +1,29 @@
-from fastapi import FastAPI, File
+import magic
+from fastapi import FastAPI, Form, File, UploadFile
 from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
+from starlette.responses import FileResponse
 
 app = FastAPI()
 
-app.mount("/", StaticFiles(directory="public"), name="public")
-templates = Jinja2Templates(directory="public")
+app.mount("/", StaticFiles(directory="public", html=True), name="public")
 
 
 @app.post("/api/file")
 async def infer(file: bytes = File(...)):
+    # save_path = f"{data_root}/userdata/{file.filename}"
+
+    # with open(save_path, "wb") as buffer:
+    #     shutil.copyfileobj(file.file, buffer)
+
     return {"response": file}
 
 
 @app.get("/")
+@app.get("/{path}")
 async def home(path: str = "index.html"):
-    return templates.TemplateResponse(path)
+    file_path = f'public/{path}'
+    mimetype = magic.from_file(file_path)
+    return FileResponse(path, media_type=mimetype)
+
+# if __name__ == "__main__":
+#     uvicorn.run(app, host='0.0.0.0', port=8081)

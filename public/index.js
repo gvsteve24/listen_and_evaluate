@@ -150,8 +150,8 @@ class VideoRecorder {
             // const xhr = new XMLHttpRequest();
             // xhr.open("POST", "http://127.0.0.1:8081/api", true);
             // xhr.send(record);
-            const response = await fetch('http://127.0.0.1:8081/api/file', {
-                method: 'post',
+            const response = await fetch('http://localhost:8081/api/file', {
+                method: 'POST',
                 headers: {
                     'Content-Type': 'multipart/form-data'
                 },
