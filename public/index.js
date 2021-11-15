@@ -145,20 +145,15 @@ class VideoRecorder {
         if (this.recordBlobs){
             let record = new FormData();
             let blob = this.combineBlobs(this.recordBlobs);
-            record.append("file", blob);
-            console.log(record);
-            // const xhr = new XMLHttpRequest();
-            // xhr.open("POST", "http://127.0.0.1:8081/api", true);
-            // xhr.send(record);
-            const response = await fetch('http://localhost:8081/api/file', {
+            record.append("file", blob, "interview.webm");
+            const response = await fetch('http://127.0.0.1:8081/api/file', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'multipart/form-data'
-                },
                 body: record
             });
 
-            console.log(response.body);
+            if (response && response.stt) {
+                console.log(response.stt);
+            }
         }
     }
 }

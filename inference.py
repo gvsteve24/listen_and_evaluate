@@ -1,8 +1,16 @@
+from dataclasses import dataclass
+
 import torch
 from sentence_transformers import SentenceTransformer, util
 import nemo.collections.asr as nemo_asr
 
 from util.encoder import AudioEncoder
+
+
+@dataclass
+class InferScore:
+    score: int
+    text: str
 
 
 class Inferer:
@@ -22,7 +30,7 @@ class Inferer:
             text = self.quartznet.transcribe([output_path])
             return text[0]
 
-    def calculate_score(self, query: str, docs: str) -> [float]:
+    def calculate_score(self, query: str, docs: [str]) -> [InferScore]:
         query_emb = self.sentence_bert.encode(query)
         doc_emb = self.sentence_bert.encode(docs)
 
@@ -30,6 +38,7 @@ class Inferer:
 
         doc_score_pairs = list(zip(docs, scores))
         doc_score_pairs = sorted(doc_score_pairs, key=lambda x: x[1], reverse=True)
+        doc_score_pairs = [InferScore(score, doc) for doc, score in doc_score_pairs]
 
         return doc_score_pairs
 

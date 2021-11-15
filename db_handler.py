@@ -33,6 +33,19 @@ class DBHandler:
         self._session.commit()
         self._session.close()
 
+    def save_one_path(self, path):
+        files = (
+            self._session.query(InputFiles)
+                .filter(InputFiles.path == path)
+                .first()
+        )
+        if files is None:
+            files = InputFiles(path=path)
+            self._session.add(files)
+        self._session.add(files)
+        self._session.commit()
+        self._session.close()
+
     def retrieve_one_path(self, path) -> PathResultItem:
         item = (
             self._session.query(InputFiles)
