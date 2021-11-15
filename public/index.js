@@ -7,13 +7,15 @@ class VideoRecorder {
         this.playButton = document.getElementById("play")
         this.coloredCircle = document.getElementsByClassName("circle")[0]
         this.saveButton = document.getElementById("save")
-        this.videoPlayer = document.getElementById('video-player')
+        this.videoPlayer = document.getElementById('video-player');
+        this.evalButton = document.getElementById('eval');
 
         this.recorder = undefined
         this.recorded = false
         this.recordBlobs = []
         this.savedURL = ''
 
+        this.evalButton.onclick = this.handleMultipart.bind(this)
         this.recordButton.onclick = this.beginRecord.bind(this)
         this.playButton.onclick = this.playRecordedBlobs.bind(this)
         this.saveButton.onclick = this.downloadFile.bind(this)
@@ -136,6 +138,28 @@ class VideoRecorder {
 
     toggleColor(){
         this.coloredCircle.classList.toggle("on-record");
+    }
+
+    async handleMultipart(e) {
+        e.preventDefault();
+        if (this.recordBlobs){
+            let record = new FormData();
+            let blob = this.combineBlobs(this.recordBlobs);
+            record.append("file", blob);
+            console.log(record);
+            // const xhr = new XMLHttpRequest();
+            // xhr.open("POST", "http://127.0.0.1:8081/api", true);
+            // xhr.send(record);
+            const response = await fetch('http://127.0.0.1:8081/api/file', {
+                method: 'post',
+                headers: {
+                    'Content-Type': 'multipart/form-data'
+                },
+                body: record
+            });
+
+            console.log(response.body);
+        }
     }
 }
 
