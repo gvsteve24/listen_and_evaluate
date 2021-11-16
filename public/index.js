@@ -1,34 +1,34 @@
 class VideoRecorder {
     constructor() {
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-            window.alert("There is no supporting device for recording!")
+            window.alert("There is no supporting device for recording!");
         }
-        this.recordButton = document.getElementById("record")
-        this.playButton = document.getElementById("play")
-        this.coloredCircle = document.getElementsByClassName("circle")[0]
-        this.saveButton = document.getElementById("save")
+        this.recordButton = document.getElementById("record");
+        this.playButton = document.getElementById("play");
+        this.coloredCircle = document.getElementsByClassName("circle")[0];
+        this.saveButton = document.getElementById("save");
         this.videoPlayer = document.getElementById('video-player');
         this.evalButton = document.getElementById('eval');
 
-        this.recorder = undefined
-        this.recorded = false
-        this.recordBlobs = []
-        this.savedURL = ''
+        this.recorder = undefined;
+        this.recorded = false;
+        this.recordBlobs = [];
+        this.savedURL = '';
 
-        this.evalButton.onclick = this.handleMultipart.bind(this)
-        this.recordButton.onclick = this.beginRecord.bind(this)
-        this.playButton.onclick = this.playRecordedBlobs.bind(this)
-        this.saveButton.onclick = this.downloadFile.bind(this)
-        this.coloredCircle.onclick = this.toggleColor.bind(this)
-        this.record = this.record.bind(this)
-        this.detectMimeType = this.detectMimeType.bind(this)
-        this.combineBlobs = this.combineBlobs.bind(this)
-        this.createBlobURL = this.createBlobURL.bind(this)
-        this.stopPlaying = this.stopPlaying.bind(this)
-        this.playStream = this.playStream.bind(this)
-        this.playRecordedBlobs = this.playRecordedBlobs.bind(this)
-        this.setData = this.setData.bind(this)
-        this.stopMediaStream = this.stopMediaStream.bind(this)
+        this.evalButton.onclick = this.handleMultipart.bind(this);
+        this.recordButton.onclick = this.beginRecord.bind(this);
+        this.playButton.onclick = this.playRecordedBlobs.bind(this);
+        this.saveButton.onclick = this.downloadFile.bind(this);
+        this.coloredCircle.onclick = this.toggleColor.bind(this);
+        this.record = this.record.bind(this);
+        this.detectMimeType = this.detectMimeType.bind(this);
+        this.combineBlobs = this.combineBlobs.bind(this);
+        this.createBlobURL = this.createBlobURL.bind(this);
+        this.stopPlaying = this.stopPlaying.bind(this);
+        this.playStream = this.playStream.bind(this);
+        this.playRecordedBlobs = this.playRecordedBlobs.bind(this);
+        this.setData = this.setData.bind(this);
+        this.stopMediaStream = this.stopMediaStream.bind(this);
 
         this.constraints = {
             'video': {
@@ -151,8 +151,17 @@ class VideoRecorder {
                 body: record
             });
 
-            if (response && response.stt) {
-                console.log(response.stt);
+            if (response) {
+                const json = await response.json();
+                const displayElem = document.getElementById('display');
+                displayElem.innerHTML = `
+                    <p>${json.stt}</p>
+                    <ul>
+                        <li>Score corresponding answer template 1:${json.result[0].score}</li>
+                        <li>Score corresponding answer template 2:${json.result[1].score}</li>
+                        <li>Score corresponding answer template 3:${json.result[2].score}</li>
+                    </ul>
+                `;
             }
         }
     }
