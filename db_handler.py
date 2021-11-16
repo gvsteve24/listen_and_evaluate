@@ -1,4 +1,5 @@
 import os
+import csv
 from dataclasses import dataclass
 from dotenv import load_dotenv
 
@@ -25,11 +26,34 @@ class DBHandler:
         self._engine = create_engine(url)
         self._session = scoped_session(sessionmaker(bind=self._engine))
 
-    def add_questions(self, questions: [str]):
-        for question in questions:
+    def add_questions(self, csv_path: str):
+        """
+        :param csv_path: csv is provided for sample data
+        :return: None
+        """
+        f = open(csv_path)
+        reader = csv.reader(f)
+        for i, question in reader:
             self._session.execute("INSERT INTO question (content) VALUES (:content)",
                                   {"content": question})
             print(f"Added {question} in question table.")
+        self._session.commit()
+        self._session.close()
+
+    def add_answers(self, csv_path: str):
+        """
+        :param csv_path: csv is provided for sample data
+        :return:
+        """
+        f = open(csv_path)
+        reader = csv.reader(f)
+
+        for i, suggested, answer in reader:
+            self._session.execute("INSERT INTO answer (q_id, suggested, text) VALUES (:q_id, :suggested, :text)",
+                                  {"q_id": int(i),
+                                   "suggested": bool(suggested),
+                                   "text": answer.strip('"')})
+            print(f"{answer} is created on q_id: {int(i)}")
         self._session.commit()
         self._session.close()
 
@@ -96,7 +120,7 @@ class DBHandler:
         self._session.commit()
         self._session.close()
 
-    def save_score(self, q_id: int, score: int):
+    def add_answer_content(self, q_id: int, score: int):
         """
         TO-DO: save score to existing row or newly save
         """
@@ -119,6 +143,8 @@ if __name__ == "__main__":
     load_dotenv()
     url = os.getenv('DATABASE_URL')
     handler = DBHandler(url)
-    print(*handler.retrieve_path_by_question('q1'), sep='\n')
+    handler.add_questions(csv_path='sample/questions_developer_chegg_out.csv')
+    handler.add_answers(csv_path='sample/answers_developer_chegg_out.csv')
+    # print(*handler.retrieve_path_by_question('q1'), sep='\n')
     # item = handler.retrieve_one_path('/home/junghyun/hdd/Fox News/CNN drops Rick Santorum fails to punish Chris Cuomo.3gpp')
     # print(item.id)
