@@ -59,7 +59,6 @@ class DBHandler:
         self._session.close()
 
     def retrieve_one_question(self, random: bool = False, question: str = None) -> QuestionItem:
-        # def retrieve_one_question(self, question: str) -> QuestionItem:
         if not random:
             item = (
                 self._session.query(Question)
@@ -76,14 +75,14 @@ class DBHandler:
         self._session.close()
         return QuestionItem(item.id, item.content)
 
-    def save_one_path(self, path):
+    def save_one_path(self, path: str, id: str):
         files = (
             self._session.query(InputFiles)
                 .filter(InputFiles.path == path)
                 .first()
         )
         if files is None:
-            files = InputFiles(path=path)
+            files = InputFiles(path=path, id=id)
             self._session.add(files)
         self._session.add(files)
         self._session.commit()
@@ -129,33 +128,21 @@ class DBHandler:
         self._session.commit()
         self._session.close()
 
-    def add_answer_content(self, q_id: int, score: int):
-        """
-        TO-DO: save score to existing row or newly save
-        """
+    def retrieve_suggested_answers(self, q_id: int) -> [str]:
         item = (
-            self._session.query(Answer)
+            self._session.query(Answer.text)
                 .filter(Answer.q_id == q_id)
-                .first()
+                .where(Answer.suggested == 1)
+                .all()
         )
-        if not item:
-            self._session.add(Answer(q_id=q_id, score=score))
-        else:
-            self._session.execute("UPDATE answer SET score = (:score) where q_id =(:q_id)", {"score": score, "q_id": q_id})
-            print("Answer score has been updated.")
+        doc = [v for d in item for v in d]
+        return doc
 
-        self._session.commit()
-        self._session.close()
 
 
 if __name__ == "__main__":
-    load_dotenv()
-    url = os.getenv('DATABASE_URL')
-    handler = DBHandler(url)
-    result = handler.retrieve_one_question(random=True)
-    print(result.id, result.content)
-    # handler.add_questions(csv_path='sample/questions_developer_chegg_out.csv')
-    # handler.add_answers(csv_path='sample/answers_developer_chegg_out.csv')
-    # print(*handler.retrieve_path_by_question('q1'), sep='\n')
-    # item = handler.retrieve_one_path('/home/junghyun/hdd/Fox News/CNN drops Rick Santorum fails to punish Chris Cuomo.3gpp')
-    # print(item.id)
+    # load_dotenv()
+    # url = os.getenv('DATABASE_URL')
+    # handler = DBHandler(url)
+    # result = handler.retrieve_suggested_answers(q_id=22)
+    pass

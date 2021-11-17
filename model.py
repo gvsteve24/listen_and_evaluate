@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, Float
+from sqlalchemy import Column, Integer, String, ForeignKey, Float, Boolean
 from sqlalchemy.orm import declarative_base
 
 Base = declarative_base()
@@ -22,6 +22,7 @@ class Answer(Base):
     __tablename__ = 'answer'
 
     id = Column(Integer, primary_key=True, autoincrement=True, nullable=False, unique=True)
+    suggested = Column(Integer, default=0)
     text = Column(String)
-    score = Column(Float, default=0)
     q_id = Column(Integer, ForeignKey("question.id"))
+    input_id = Column(Integer, ForeignKey("input_files.id"))

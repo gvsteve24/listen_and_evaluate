@@ -1,11 +1,11 @@
 function docReady(fn) {
-  if (document.readyState === "complete" || document.readyState === "interactive") {
-    console.log('document already ready');
-    setTimeout(fn, 1);
-  } else {
-    console.log('adding event listener');
-    document.addEventListener("DOMContentLoaded", fn);
-  }
+    if (document.readyState === "complete" || document.readyState === "interactive") {
+        console.log('document already ready');
+        setTimeout(fn, 1);
+    } else {
+        console.log('adding event listener');
+        document.addEventListener("DOMContentLoaded", fn);
+    }
 }
 
 function showData(data) {
@@ -13,15 +13,8 @@ function showData(data) {
     outputElement.innerText = data.question;
 }
 
-!async function() {
-    const response = await fetch('http://127.0.0.1:8081/api/question');
-    const data = await response.json();
-    console.log(data);
-    docReady(showData(data));
-}();
-
 class VideoRecorder {
-    constructor() {
+    constructor(question_id) {
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
             window.alert("There is no supporting device for recording!");
         }
@@ -32,6 +25,7 @@ class VideoRecorder {
         this.videoPlayer = document.getElementById('video-player');
         this.evalButton = document.getElementById('eval');
 
+        this.question_id = question_id;
         this.recorder = undefined;
         this.recorded = false;
         this.recordBlobs = [];
@@ -65,10 +59,10 @@ class VideoRecorder {
 
     async beginRecord() {
         try {
-            if(!this.recorder){
+            if (!this.recorder) {
                 this.recorder = await this.record((stream) =>
                     this.playStream(stream), (recordedBlobs) => this.setData(recordedBlobs));
-            }else {
+            } else {
                 this.recorder.stop();
                 this.stopPlaying(this.videoPlayer);
                 this.recorder = undefined;
@@ -84,7 +78,7 @@ class VideoRecorder {
 
         onStreamReady(stream);
 
-        const options = { mimeType: this.detectMimeType() };
+        const options = {mimeType: this.detectMimeType()};
         const mediaRecorder = new MediaRecorder(stream, options);
         mediaRecorder.ondataavailable = (event) => {
             if (event.data && event.data.size > 0) {
@@ -114,7 +108,7 @@ class VideoRecorder {
     }
 
     combineBlobs(recordedBlobs) {
-        return new Blob(recordedBlobs, { type: 'video/webm' });
+        return new Blob(recordedBlobs, {type: 'video/webm'});
     }
 
     createBlobURL(blobs) {
@@ -153,22 +147,22 @@ class VideoRecorder {
         if (this.savedURL) {
             this.saveButton.href = this.savedURL;
             this.saveButton.download = 'video.webm';
-        }else {
+        } else {
             window.alert("No video exists!");
         }
     }
 
-    toggleColor(){
+    toggleColor() {
         this.coloredCircle.classList.toggle("on-record");
     }
 
-    async handleMultipart(e) {
-        e.preventDefault();
-        if (this.recordBlobs){
+    async handleMultipart() {
+        if (this.recordBlobs) {
             let record = new FormData();
             let blob = this.combineBlobs(this.recordBlobs);
+            record.append("q_id", this.question_id);
             record.append("file", blob, "interview.webm");
-            const response = await fetch('http://127.0.0.1:8081/api/file', {
+            const response = await fetch(`http://127.0.0.1:8081/api/file`, {
                 method: 'POST',
                 body: record
             });
@@ -179,14 +173,20 @@ class VideoRecorder {
                 displayElem.innerHTML = `
                     <p>${json.stt}</p>
                     <ul>
-                        <li>Score corresponding answer template 1:${json.result[0].score}</li>
-                        <li>Score corresponding answer template 2:${json.result[1].score}</li>
-                        <li>Score corresponding answer template 3:${json.result[2].score}</li>
+                        ${json.result.map(item => `<li>${item.score}, when compare to the answer "${item.text}"</li>`).join('')}
                     </ul>
                 `;
+                console.log(json.stt);
+                console.log(json.result.forEach(elem => console.log(elem.score)));
             }
         }
     }
 }
 
-window.videoRecorder = new VideoRecorder();
+!async function () {
+    const response = await fetch('http://127.0.0.1:8081/api/question');
+    const data = await response.json();
+    console.log(data);
+    docReady(showData(data));
+    window.videoRecorder = new VideoRecorder(data.id);
+}();
