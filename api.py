@@ -16,11 +16,18 @@ load_dotenv()
 data_root = os.environ.get('BASE_DIR')
 db_url = os.environ.get('DATABASE_URL')
 
-app = FastAPI()
 db = DBHandler(db_url)
 inference = Inferer()
 
+app = FastAPI()
+
 app.mount("/public", StaticFiles(directory="public", html=True), name="public")
+
+
+@app.get("/api/question")
+async def get_question():
+    item = db.retrieve_one_question(random=True)
+    return {"question": item.content}
 
 
 @app.post("/api/file")

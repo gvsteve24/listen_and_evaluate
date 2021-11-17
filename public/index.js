@@ -1,3 +1,25 @@
+function docReady(fn) {
+  if (document.readyState === "complete" || document.readyState === "interactive") {
+    console.log('document already ready');
+    setTimeout(fn, 1);
+  } else {
+    console.log('adding event listener');
+    document.addEventListener("DOMContentLoaded", fn);
+  }
+}
+
+function showData(data) {
+    const outputElement = document.getElementById('question');
+    outputElement.innerText = data.question;
+}
+
+!async function() {
+    const response = await fetch('http://127.0.0.1:8081/api/question');
+    const data = await response.json();
+    console.log(data);
+    docReady(showData(data));
+}();
+
 class VideoRecorder {
     constructor() {
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {

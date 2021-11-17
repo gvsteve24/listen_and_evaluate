@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
+from sqlalchemy.sql.expression import func, select
 
 from model import Question, InputFiles, Answer
 
@@ -18,7 +19,7 @@ class PathResultItem:
 @dataclass
 class QuestionItem:
     id: int
-    path: str
+    content: str
 
 
 class DBHandler:
@@ -56,6 +57,24 @@ class DBHandler:
             print(f"{answer} is created on q_id: {int(i)}")
         self._session.commit()
         self._session.close()
+
+    def retrieve_one_question(self, random: bool = False, question: str = None) -> QuestionItem:
+        # def retrieve_one_question(self, question: str) -> QuestionItem:
+        if not random:
+            item = (
+                self._session.query(Question)
+                    .order_by(Question.content == question)
+                    .first()
+            )
+        else:
+            item = (
+                self._session.query(Question)
+                    .order_by(func.rand())
+                    .first()
+            )
+
+        self._session.close()
+        return QuestionItem(item.id, item.content)
 
     def save_one_path(self, path):
         files = (
@@ -95,16 +114,6 @@ class DBHandler:
         self._session.close()
         return result
 
-    def retrieve_one_question(self, question: str) -> QuestionItem:
-        item = (
-            self._session.query(Question)
-                .filter(Question.content == question)
-                .first()
-        )
-
-        self._session.close()
-        return QuestionItem(item.id, item.path)
-
     def save_transcript(self, q_id: int, text: str):
         item = (
             self._session.query(Answer)
@@ -143,8 +152,10 @@ if __name__ == "__main__":
     load_dotenv()
     url = os.getenv('DATABASE_URL')
     handler = DBHandler(url)
-    handler.add_questions(csv_path='sample/questions_developer_chegg_out.csv')
-    handler.add_answers(csv_path='sample/answers_developer_chegg_out.csv')
+    result = handler.retrieve_one_question(random=True)
+    print(result.id, result.content)
+    # handler.add_questions(csv_path='sample/questions_developer_chegg_out.csv')
+    # handler.add_answers(csv_path='sample/answers_developer_chegg_out.csv')
     # print(*handler.retrieve_path_by_question('q1'), sep='\n')
     # item = handler.retrieve_one_path('/home/junghyun/hdd/Fox News/CNN drops Rick Santorum fails to punish Chris Cuomo.3gpp')
     # print(item.id)
