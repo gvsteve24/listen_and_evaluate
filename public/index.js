@@ -1,3 +1,5 @@
+import { v4 as uuidv4 } from 'https://jspm.dev/uuid';
+
 function docReady(fn) {
     if (document.readyState === "complete" || document.readyState === "interactive") {
         console.log('document already ready');
@@ -24,14 +26,17 @@ class VideoRecorder {
         this.saveButton = document.getElementById("save");
         this.videoPlayer = document.getElementById('video-player');
         this.evalButton = document.getElementById('eval');
+        this.transButton = document.getElementById('stt');
 
         this.question_id = question_id;
         this.recorder = undefined;
         this.recorded = false;
         this.recordBlobs = [];
         this.savedURL = '';
+        this.transcription = '';
 
-        this.evalButton.onclick = this.handleMultipart.bind(this);
+        this.transButton.onclick = this.handleUtter.bind(this);
+        this.evalButton.onclick = this.handleEval.bind(this);
         this.recordButton.onclick = this.beginRecord.bind(this);
         this.playButton.onclick = this.playRecordedBlobs.bind(this);
         this.saveButton.onclick = this.downloadFile.bind(this);
@@ -146,7 +151,7 @@ class VideoRecorder {
     async downloadFile() {
         if (this.savedURL) {
             this.saveButton.href = this.savedURL;
-            this.saveButton.download = 'video.webm';
+            this.saveButton.download = `question_${this.question_id}_answer`;
         } else {
             window.alert("No video exists!");
         }
@@ -156,12 +161,35 @@ class VideoRecorder {
         this.coloredCircle.classList.toggle("on-record");
     }
 
-    async handleMultipart() {
-        if (this.recordBlobs) {
+    async handleEval() {
+        if (this.transcription) {
+            const response = await fetch(`http://127.0.0.1:8081/api/score?q_id=${this.question_id}&text=${this.transcription}`, {
+                method: 'GET',
+            });
+
+            if (response) {
+                const json = await response.json();
+                const displayElem = document.getElementById('display');
+                displayElem.innerHTML = `
+                    <ul>
+                        ${json.result.map( item => `<li>${item.score}, when compare to the answer, ${item.text}</li>`).join()}
+                    </ul>
+                `;
+                console.log(json.result.forEach(elem => console.log(elem.score)));
+            }
+        } else {
+            window.alert("Please record the answer before evaluation.")
+        }
+    }
+
+    async handleUtter() {
+         if (this.recordBlobs) {
             let record = new FormData();
             let blob = this.combineBlobs(this.recordBlobs);
+            const record_id = uuidv4();
+            console.log(record_id);
             record.append("q_id", this.question_id);
-            record.append("file", blob, "interview.webm");
+            record.append("file", blob, `question_${this.question_id}_answer_${record_id}.webm`);
             const response = await fetch(`http://127.0.0.1:8081/api/file`, {
                 method: 'POST',
                 body: record
@@ -169,15 +197,12 @@ class VideoRecorder {
 
             if (response) {
                 const json = await response.json();
+                this.transcription = json.stt;
                 const displayElem = document.getElementById('display');
                 displayElem.innerHTML = `
-                    <p>${json.stt}</p>
-                    <ul>
-                        ${json.result.map(item => `<li>${item.score}, when compare to the answer "${item.text}"</li>`).join('')}
-                    </ul>
+                    <p>${this.transcription}</p>
                 `;
                 console.log(json.stt);
-                console.log(json.result.forEach(elem => console.log(elem.score)));
             }
         }
     }

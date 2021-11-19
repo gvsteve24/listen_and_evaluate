@@ -18,10 +18,12 @@ db_url = os.environ.get('DATABASE_URL')
 
 db = DBHandler(db_url)
 inference = Inferer()
+test_tool = TestTool(db, inference)
 
 app = FastAPI()
 
-app.mount("/public", StaticFiles(directory="public", html=True), name="public")
+app.mount("/public", StaticFiles(directory="public"), name="public")
+# app.mount("/components", StaticFiles(directory="public/components"), name="component")
 
 
 @app.get("/api/question")
@@ -31,19 +33,24 @@ async def get_question():
 
 
 @app.post("/api/file")
-async def infer(file: UploadFile = File(...),  q_id: str = Form(...)):
+async def infer(file: UploadFile = File(...),  q_id: int = Form(...)):
     save_path = f"{data_root}/{file.filename}"
-
     # save file to server memory
     with open(save_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
     # save file path to server db
-    db.save_one_path(save_path, q_id)
-    test_tool = TestTool(db, inference)
+    input_id = db.save_one_path(save_path, q_id)
     stt = test_tool.run_stt(save_path)  # result is list including each score and corresponding answer
     print(f"target_text: {stt}\nq_id: {q_id}")
-    result = test_tool.run_sentence_score(target_text=stt, q_id=q_id)
-    return {"stt": stt, "result": result}
+    db.save_one_answer(q_id, stt, input_id)
+    return {"stt": stt}
+
+
+@app.get("/api/score/{text}")
+@app.get("/api/score/{id}")
+async def evaluate(target_text: str = "No utterance", q_id: str = None):
+    result = test_tool.run_sentence_score(target_text=target_text, q_id=q_id)
+    return {"result": result}
 
 
 @app.get("/")

@@ -18,10 +18,8 @@ class InferScore:
 
 class Inferer:
     def __init__(self):
-        if torch.cuda.is_available():
-            self.gpu_available = True
-            self.quartznet = nemo_asr.models.ASRModel.from_pretrained(model_name="QuartzNet15x5Base-En").cuda()
-            self.sentence_bert = SentenceTransformer('sentence-transformers/msmarco-distilbert-dot-v5')
+        self.quartznet = nemo_asr.models.ASRModel.from_pretrained(model_name="QuartzNet15x5Base-En")
+        self.sentence_bert = SentenceTransformer('sentence-transformers/msmarco-distilbert-dot-v5')
 
     def speech_to_text(self, audio_path: str) -> str:
         enc_path = AudioEncoder.encode(audio_path)

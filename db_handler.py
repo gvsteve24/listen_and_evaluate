@@ -75,26 +75,29 @@ class DBHandler:
         self._session.close()
         return QuestionItem(item.id, item.content)
 
-    def save_one_path(self, path: str, id: str):
-        files = (
-            self._session.query(InputFiles)
-                .filter(InputFiles.path == path)
-                .first()
-        )
-        if files is None:
-            files = InputFiles(path=path, id=id)
-            self._session.add(files)
-        self._session.add(files)
-        self._session.commit()
-        self._session.close()
-
-    def retrieve_one_path(self, path) -> PathResultItem:
+    def save_one_path(self, path: str, q_id: int) -> int:
         item = (
             self._session.query(InputFiles)
                 .filter(InputFiles.path == path)
                 .first()
         )
+        if item is None:
+            item = InputFiles(path=path, q_id=q_id)
+            self._session.add(item)
+        else:
+            self._session.add(item)
+        self._session.expunge(item)
+        self._session.commit()
+        self._session.close()
+        return item.id
 
+    def retrieve_one_path(self, path) -> PathResultItem:
+        print(path)
+        item = (
+            self._session.query(InputFiles)
+                .filter(InputFiles.path == path)
+                .first()
+        )
         self._session.close()
         return PathResultItem(item.id, item.path)
 
@@ -113,29 +116,19 @@ class DBHandler:
         self._session.close()
         return result
 
-    def save_transcript(self, q_id: int, text: str):
-        item = (
-            self._session.query(Answer)
-                .filter(Answer.q_id == q_id)
-                .first()
-        )
-        if not item:
-            self._session.add(Answer(q_id=q_id, text=text))
-        else:
-            self._session.execute("UPDATE answer SET text = (:text) where q_id =(:q_id)", {"text": text, "q_id": q_id})
-            print("Answer stt has been updated.")
-
+    def save_one_answer(self, q_id: int, text: str, input_id: int):
+        self._session.add(Answer(suggested=0, text=text, q_id=q_id, input_id=input_id))
         self._session.commit()
         self._session.close()
 
     def retrieve_suggested_answers(self, q_id: int) -> [str]:
-        item = (
+        items = (
             self._session.query(Answer.text)
                 .filter(Answer.q_id == q_id)
                 .where(Answer.suggested == 1)
                 .all()
         )
-        doc = [v for d in item for v in d]
+        doc = [ans for row in items for ans in row]
         return doc
 
 
