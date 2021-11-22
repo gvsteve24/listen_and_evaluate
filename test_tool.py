@@ -11,10 +11,9 @@ class InferScore:
 
 
 class TestTool:
-    def __init__(self, db_handler: DBHandler, infer_tool: Inferer, data_dir: str = "/home/junghyun/hdd/Fox News"):
+    def __init__(self, db_handler: DBHandler, infer_tool: Inferer):
         self.db_handler = db_handler
         self.infer_tool = infer_tool
-        self.data_dir = data_dir
 
     def run_stt(self, path: str) -> [InferScore]:
         item = self.db_handler.retrieve_one_path(path)

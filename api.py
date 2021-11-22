@@ -7,7 +7,7 @@ from fastapi import FastAPI, File, UploadFile, Form
 from fastapi.staticfiles import StaticFiles
 from starlette.responses import FileResponse
 
-from db_handler import DBHandler
+from db_handler import DBHandler, DBConnectionHandler
 from inference import Inferer
 from test_tool import TestTool
 
@@ -18,12 +18,11 @@ db_url = os.environ.get('DATABASE_URL')
 
 db = DBHandler(db_url)
 inference = Inferer()
-test_tool = TestTool(db, inference)
+test_tool = TestTool(db_handler=db, infer_tool=inference)
 
 app = FastAPI()
 
 app.mount("/public", StaticFiles(directory="public"), name="public")
-# app.mount("/components", StaticFiles(directory="public/components"), name="component")
 
 
 @app.get("/api/question")
@@ -34,22 +33,25 @@ async def get_question():
 
 @app.post("/api/file")
 async def infer(file: UploadFile = File(...),  q_id: int = Form(...)):
+    if not os.path.exists(data_root):
+        os.mkdir(data_root)
+    # default data root is (./data)
     save_path = f"{data_root}/{file.filename}"
+
     # save file to server memory
     with open(save_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
+
     # save file path to server db
-    input_id = db.save_one_path(save_path, q_id)
-    stt = test_tool.run_stt(save_path)  # result is list including each score and corresponding answer
-    print(f"target_text: {stt}\nq_id: {q_id}")
-    db.save_one_answer(q_id, stt, input_id)
+    db.save_one_path(save_path, q_id)
+    stt = test_tool.run_stt(save_path)
+    db.save_one_answer(q_id, stt, save_path)
     return {"stt": stt}
 
 
-@app.get("/api/score/{text}")
-@app.get("/api/score/{id}")
-async def evaluate(target_text: str = "No utterance", q_id: str = None):
-    result = test_tool.run_sentence_score(target_text=target_text, q_id=q_id)
+@app.get("/api/score")
+async def evaluate(text: str = "No utterance", q_id: str = None):
+    result = test_tool.run_sentence_score(target_text=text, q_id=q_id)
     return {"result": result}
 
 

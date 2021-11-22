@@ -1,11 +1,8 @@
-import os
-import csv
 from dataclasses import dataclass
-from dotenv import load_dotenv
 
 from sqlalchemy import create_engine
-from sqlalchemy.orm import scoped_session, sessionmaker
-from sqlalchemy.sql.expression import func, select
+from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.sql.expression import func
 
 from model import Question, InputFiles, Answer
 
@@ -22,90 +19,71 @@ class QuestionItem:
     content: str
 
 
-class DBHandler:
+class DBConnectionHandler:
     def __init__(self, url):
         self._engine = create_engine(url)
-        self._session = scoped_session(sessionmaker(bind=self._engine))
+        self._Session = sessionmaker(bind=self._engine)
 
-    def add_questions(self, csv_path: str):
-        """
-        :param csv_path: csv is provided for sample data
-        :return: None
-        """
-        f = open(csv_path)
-        reader = csv.reader(f)
-        for i, question in reader:
-            self._session.execute("INSERT INTO question (content) VALUES (:content)",
-                                  {"content": question})
-            print(f"Added {question} in question table.")
-        self._session.commit()
-        self._session.close()
+    def get_session(self) -> Session:
+        return self._Session()
 
-    def add_answers(self, csv_path: str):
-        """
-        :param csv_path: csv is provided for sample data
-        :return:
-        """
-        f = open(csv_path)
-        reader = csv.reader(f)
 
-        for i, suggested, answer in reader:
-            self._session.execute("INSERT INTO answer (q_id, suggested, text) VALUES (:q_id, :suggested, :text)",
-                                  {"q_id": int(i),
-                                   "suggested": bool(suggested),
-                                   "text": answer.strip('"')})
-            print(f"{answer} is created on q_id: {int(i)}")
-        self._session.commit()
-        self._session.close()
+class DBHandler:
+    def __init__(self, url: str):
+        self._connector = DBConnectionHandler(url)
+        self._session = None
 
     def retrieve_one_question(self, random: bool = False, question: str = None) -> QuestionItem:
+        session = self._connector.get_session()
         if not random:
             item = (
-                self._session.query(Question)
+                session.query(Question)
                     .order_by(Question.content == question)
                     .first()
             )
         else:
             item = (
-                self._session.query(Question)
+                session.query(Question)
                     .order_by(func.rand())
                     .first()
             )
 
-        self._session.close()
+        session.close()
         return QuestionItem(item.id, item.content)
 
-    def save_one_path(self, path: str, q_id: int) -> int:
+    def save_one_path(self, path: str, q_id: int):
+        session = self._connector.get_session()
         item = (
-            self._session.query(InputFiles)
+            session.query(InputFiles)
                 .filter(InputFiles.path == path)
                 .first()
         )
         if item is None:
             item = InputFiles(path=path, q_id=q_id)
-            self._session.add(item)
+            session.add(item)
         else:
-            self._session.add(item)
-        self._session.expunge(item)
-        self._session.commit()
-        self._session.close()
-        return item.id
+            session.add(item)
+        # session.expunge(item)
+        session.commit()
+        session.close()
 
     def retrieve_one_path(self, path) -> PathResultItem:
+        session = self._connector.get_session()
         print(path)
         item = (
-            self._session.query(InputFiles)
+            session.query(InputFiles)
                 .filter(InputFiles.path == path)
                 .first()
         )
-        self._session.close()
+        session.close()
         return PathResultItem(item.id, item.path)
 
     def retrieve_path_by_question(self, question: str) -> [PathResultItem]:
+        session = self._connector.get_session()
         result = []
 
         items = (
-            self._session.query(InputFiles)
+            session.query(InputFiles)
                 .join(Question, Question.id == InputFiles.q_id)
                 .filter(Question.content == question)
                 .all()
@@ -113,29 +91,36 @@ class DBHandler:
 
         for item in items:
             result.append(PathResultItem(item.id, item.path))
-        self._session.close()
+        session.close()
         return result
 
-    def save_one_answer(self, q_id: int, text: str, input_id: int):
-        self._session.add(Answer(suggested=0, text=text, q_id=q_id, input_id=input_id))
-        self._session.commit()
-        self._session.close()
+    def save_one_answer(self, q_id: int, text: str, path: str):
+        session = self._connector.get_session()
+        # getting input_id from q_id and text(?)
+        item = (
+            session.query(InputFiles)
+                .filter(InputFiles.path == path)
+                .first()
+        )
+        session.add(Answer(suggested=0, text=text, q_id=q_id, input_id=item.id))
+        session.commit()
+        session.close()
 
     def retrieve_suggested_answers(self, q_id: int) -> [str]:
+        session = self._connector.get_session()
         items = (
-            self._session.query(Answer.text)
+            session.query(Answer.text)
                 .filter(Answer.q_id == q_id)
                 .where(Answer.suggested == 1)
                 .all()
         )
         doc = [ans for row in items for ans in row]
+        session.close()
         return doc
 
 
 
 if __name__ == "__main__":
-    # load_dotenv()
-    # url = os.getenv('DATABASE_URL')
     # handler = DBHandler(url)
     # result = handler.retrieve_suggested_answers(q_id=22)
     pass

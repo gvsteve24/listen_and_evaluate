@@ -169,13 +169,12 @@ class VideoRecorder {
 
             if (response) {
                 const json = await response.json();
-                const displayElem = document.getElementById('display');
+                const displayElem = document.getElementById('score');
                 displayElem.innerHTML = `
                     <ul>
                         ${json.result.map( item => `<li>${item.score}, when compare to the answer, ${item.text}</li>`).join()}
                     </ul>
                 `;
-                console.log(json.result.forEach(elem => console.log(elem.score)));
             }
         } else {
             window.alert("Please record the answer before evaluation.")
@@ -186,10 +185,10 @@ class VideoRecorder {
          if (this.recordBlobs) {
             let record = new FormData();
             let blob = this.combineBlobs(this.recordBlobs);
-            const record_id = uuidv4();
-            console.log(record_id);
+            let currentDate = new Date();
+            let datetime = `${currentDate.getMonth()+1}${currentDate.getDate()}_${currentDate.getHours()}:${(currentDate.getMinutes() < 10)?"0":"" + String(currentDate.getMinutes())}:${(currentDate.getSeconds() < 10)?"0":"" + String(currentDate.getSeconds())}`
             record.append("q_id", this.question_id);
-            record.append("file", blob, `question_${this.question_id}_answer_${record_id}.webm`);
+            record.append("file", blob, `question_${this.question_id}_answer_${datetime}.webm`);
             const response = await fetch(`http://127.0.0.1:8081/api/file`, {
                 method: 'POST',
                 body: record
@@ -202,7 +201,6 @@ class VideoRecorder {
                 displayElem.innerHTML = `
                     <p>${this.transcription}</p>
                 `;
-                console.log(json.stt);
             }
         }
     }
