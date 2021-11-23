@@ -1,5 +1,3 @@
-import { v4 as uuidv4 } from 'https://jspm.dev/uuid';
-
 function docReady(fn) {
     if (document.readyState === "complete" || document.readyState === "interactive") {
         console.log('document already ready');

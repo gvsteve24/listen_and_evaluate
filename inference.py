@@ -1,12 +1,8 @@
-import os
 from dataclasses import dataclass
 
-import torch
-from dotenv import load_dotenv
 from sentence_transformers import SentenceTransformer, util
 import nemo.collections.asr as nemo_asr
 
-from db_handler import DBHandler
 from util.encoder import AudioEncoder
 
 
@@ -45,15 +41,7 @@ class Inferer:
 
 
 if __name__ == "__main__":
-    file_path = '/home/junghyun/Downloads/interview.webm'
-    load_dotenv()
-    url = os.getenv('DATABASE_URL')
-    handler = DBHandler(url)
-    doc = handler.retrieve_suggested_answers(q_id=22)
-    infertool = Inferer()
-    transcription = infertool.speech_to_text(file_path)
-    result = infertool.calculate_score(transcription, doc)
-
-    # print(result)
-    for obj in result:
-        print(obj.score, ', when compare to the answer "', obj.text, '"')
+    pass
+    # file_path = '/home/junghyun/Downloads/interview.webm'
+    # load_dotenv()
+    # url = os.getenv('DATABASE_URL')
