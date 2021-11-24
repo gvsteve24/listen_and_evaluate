@@ -24,5 +24,10 @@ class TestTool:
         # input_id is available
         input_id = self.db_handler.retrieve_input_from_answer(target_text)
         docs = self.db_handler.retrieve_suggested_answers(q_id=q_id, input_id=input_id)
+        # there's no docs then
+        if not docs:                                # this one gets (flag_like best_id)
+            print("nothing to score newly")
+            # retrieve score by input_id with giving out best answer, no duplicate one in result
+            self.db_handler.retrieve_score_and_best_answer_by_input(input_id=input_id)
         result = self.infer_tool.calculate_score(target_text, docs)
         return result

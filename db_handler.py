@@ -1,7 +1,8 @@
+from collections.abc import Iterable
 from dataclasses import dataclass
 
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.orm import sessionmaker, Session, joinedload, contains_eager
 from sqlalchemy.sql.expression import func
 
 from inference import InferScore
@@ -89,7 +90,7 @@ class DBHandler:
                 .filter_by(text=answer)
                 .first()
         )
-        return id
+        return id[0]
 
     def retrieve_path_by_question(self, question: str) -> [PathResultItem]:
         session = self._connector.get_session()
@@ -121,27 +122,32 @@ class DBHandler:
     def retrieve_best_answer_id(self, text: str) -> int:
         session = self._connector.get_session()
         item = (session.query(BestAnswer.id).filter_by(text=text).first())
-        return item
+        return item[0]
 
     def retrieve_suggested_answers(self, q_id: int, input_id: int) -> [str]:
         session = self._connector.get_session()
         # based on input_id on score table, it can retrieve only docs that never participated inference
-        items_to_exclude = (
-            session.query(BestAnswer, Score, InputFile)
-                .filter(Score.best_id == BestAnswer.id)
-                .filter(Score.input_id == InputFile.id)
+        items = (session.query(BestAnswer)
+            .filter(BestAnswer.q_id == q_id)
+            .all()
+        )
+
+        exclude_items = (
+            session.query(BestAnswer)
+                .join(Score, BestAnswer.id == Score.best_id)
+                .filter(BestAnswer.q_id == q_id)
                 .filter(Score.input_id == input_id)
                 .all()
         )
-        items = (
-            session.query(BestAnswer.text)
-                .filter(BestAnswer.q_id == q_id)
-                .all()
-        )
-        if items_to_exclude:
-            print("exclude items.")
-            exit()
-        docs = [txt for doc in items for txt in doc]
+
+        # items -= exclude_items
+        docs = []
+        for doc in items:
+            if not isinstance(doc, Iterable):
+                docs.append(doc.text)
+            else:
+                print("it's iterable.")
+                docs.extend([txt for txt in doc])
         session.close()
         return docs
 
@@ -158,10 +164,31 @@ class DBHandler:
         session.commit()
         session.close()
 
+    def retrieve_score_and_best_by_input(self, input_id: int):
+        # score: best_answer = 1: N
+        # where score.input_id = input_id
+
+        session = self._connector.get_session()
+        # result = dict()
+        score = (
+            session.query(Score)
+                .join(BestAnswer, BestAnswer.id == Score.best_id)
+                .options(contains_eager(Score.best_id))
+                .all()
+        )
+
+
+        for file in score.input_file:
+            print(file.path)
+        session.close()
+        return score.input_file
+
 
 if __name__ == "__main__":
     RDS_URL = 'mysql+mysqlconnector://junghyun:2514876ec2a231800915a25aa023a3b6ea81e17a2bf20b21c5bb618378f9f1db@ml-mario.cluster-custom-cxdgkesqfuwz.ap-northeast-2.rds.amazonaws.com/junghyun'
     handler = DBHandler(RDS_URL)
-    doc = handler.retrieve_suggested_answers(q_id=15, input_id=4)
+    handler.retrieve_score_and_best_answer_by_input(input_id=5)
+    # doc = handler.retrieve_suggested_answers(q_id=3, input_id=5)
     # doc = handler.retrieve_input_from_answer(answer="when i first started myn internshep the onboarding process was inpari parl and initial training for developers left a lot to be desired after sharing my concerns with my trainir i was able to help develop better resources for new equobies as well as in structure and the programme entirely i feel like the show both my initiative and problem solving abilities")
-    print(*doc)
+    # for d in doc:
+    #     print(d)
