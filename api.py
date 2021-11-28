@@ -2,6 +2,7 @@ import os
 import shutil
 
 import magic
+import uvicorn
 from dotenv import load_dotenv
 from fastapi import FastAPI, File, UploadFile, Form
 from fastapi.staticfiles import StaticFiles
@@ -13,11 +14,11 @@ from test_tool import TestTool
 
 load_dotenv()
 
-data_root = os.environ.get('BASE_DIR')
-db_url = os.environ.get('DATABASE_URL')
-rds_url = os.environ.get('RDS_URL')
+data_root = os.getenv('BASE_DIR')
+db_url = os.getenv('DATABASE_URL')
+rds_url = os.getenv('RDS_URL')
 
-db = DBHandler(rds_url)
+db = DBHandler(db_url)
 inference = Inferer()
 test_tool = TestTool(db_handler=db, infer_tool=inference)
 
@@ -45,6 +46,7 @@ async def infer(file: UploadFile = File(...),  q_id: int = Form(...)):
         shutil.copyfileobj(file.file, buffer)
 
     # save file path to server db
+    # if answer was transcribed before (same file path), it just uses db stt
     db.save_one_path(save_path, q_id)
     stt = test_tool.run_stt(save_path)
     db.save_one_answer(q_id=q_id, text=stt, path=save_path)
@@ -53,14 +55,9 @@ async def infer(file: UploadFile = File(...),  q_id: int = Form(...)):
 
 @app.get("/api/score")
 async def evaluate(text: str = "No utterance", q_id: int = None):
-    # return type should be int(score only).
-    # is parameter q_id necessary?
-    # reasoning: if score is calculated once with same data.. then let's not run sentence_score logic. let's select path relatively
-    # let's join question table and answer table on q_id, and retrieve input_id
-    # can we find existence of score?
-    result = test_tool.run_sentence_score(q_id=q_id, target_text=text)
-    # db_handler saves score
-    db.save_score(query_answer=text, result=result)
+    result, to_save = test_tool.run_sentence_score(q_id=q_id, target_text=text)
+    if to_save:
+        db.save_score(query_answer=text, result=result)
     return {"result": result}
 
 
@@ -71,5 +68,5 @@ async def home(path: str = "index.html"):
     mimetype = magic.from_file(file_path)
     return FileResponse(file_path, media_type=mimetype)
 
-# if __name__ == "__main__":
-#     uvicorn.run(app, host='localhost', port=8081)
+if __name__ == "__main__":
+    uvicorn.run("api:app", host='0.0.0.0', port=8081)

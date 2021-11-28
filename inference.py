@@ -1,21 +1,23 @@
-from dataclasses import dataclass
-
+import os
+import torch.utils.data.dataloader
+import torch.cuda
 from sentence_transformers import SentenceTransformer, util
 import nemo.collections.asr as nemo_asr
 
 from util.encoder import AudioEncoder
+from dataclass import InferScore
 
-
-@dataclass
-class InferScore:
-    score: int
-    text: str
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
 
 class Inferer:
     def __init__(self):
-        self.quartznet = nemo_asr.models.ASRModel.from_pretrained(model_name="QuartzNet15x5Base-En")
-        self.sentence_bert = SentenceTransformer('sentence-transformers/msmarco-distilbert-dot-v5')
+        if torch.cuda.is_available():
+            self.quartznet = nemo_asr.models.ASRModel.from_pretrained(model_name="QuartzNet15x5Base-En").cuda()
+            self.sentence_bert = SentenceTransformer('sentence-transformers/msmarco-distilbert-dot-v5')
+        else:
+            self.quartznet = nemo_asr.models.ASRModel.from_pretrained(model_name="QuartzNet15x5Base-En")
+            self.sentence_bert = SentenceTransformer('sentence-transformers/msmarco-distilbert-dot-v5')
 
     def speech_to_text(self, audio_path: str) -> str:
         enc_path = AudioEncoder.encode(audio_path)

@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, String, ForeignKey, Float, Boolean
-from sqlalchemy.orm import declarative_base
+from sqlalchemy.orm import declarative_base, relationship
 
 Base = declarative_base()
 
@@ -37,6 +37,7 @@ class BestAnswer(Base):
     id = Column(Integer, primary_key=True, autoincrement=True, nullable=False, unique=True)
     text = Column(String)
     q_id = Column(Integer, ForeignKey("question.id"), nullable=True)
+    score = relationship("Score", back_populates="best_answer")
 
 
 class Score(Base):
@@ -46,3 +47,4 @@ class Score(Base):
     score = Column(Float, nullable=False)
     input_id = Column(Integer, ForeignKey("input_file.id"), nullable=False)
     best_id = Column(Integer, ForeignKey("best_answer.id"), nullable=False)
+    best_answer = relationship("BestAnswer", back_populates="score")
