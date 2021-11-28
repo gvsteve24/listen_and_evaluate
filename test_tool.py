@@ -1,14 +1,9 @@
-from dataclasses import dataclass
+import time
 
 from inference import Inferer
 from db_handler import DBHandler
 
-
-@dataclass
-class InferScore:
-    score: int
-    text: str
-
+from dataclass import InferScore
 
 class TestTool:
     def __init__(self, db_handler: DBHandler, infer_tool: Inferer):
@@ -20,7 +15,16 @@ class TestTool:
         text_result = self.infer_tool.speech_to_text(item.path)
         return text_result
 
-    def run_sentence_score(self, target_text, q_id):
-        docs = self.db_handler.retrieve_suggested_answers(q_id=q_id)
-        result = self.infer_tool.calculate_score(target_text, docs)
-        return result
+    def run_sentence_score(self, q_id: int, target_text: str) -> ([InferScore], bool):
+        """
+        :param q_id: question_id
+        :param target_text: normal answer
+        :return: InferScore dataclass with score and text, bool to provide flag whether to save result
+        """
+        input_id = self.db_handler.retrieve_input_from_answer(target_text)
+        docs = self.db_handler.retrieve_suggested_answers(q_id=q_id, input_id=input_id)
+        if not docs:
+            result = self.db_handler.retrieve_score_and_best_by_input(input_id=input_id)
+        else:
+            result = self.infer_tool.calculate_score(target_text, docs)
+        return result, bool(docs)
