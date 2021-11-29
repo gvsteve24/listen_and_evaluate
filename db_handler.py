@@ -5,8 +5,8 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session, contains_eager
 from sqlalchemy.sql.expression import func
 
-from model import Question, InputFile, Answer, BestAnswer, Score
-from dataclass import PathResultItem, QuestionItem, InferScore
+from model import Question, InputFile, Answer, BestAnswer, Score, BestEmbed
+from dataclass import PathResultItem, QuestionItem, InferScore, BestItem
 
 
 class DBConnectionHandler:
@@ -86,8 +86,7 @@ class DBHandler:
         item = session.query(InputFile) \
             .filter(InputFile.path == path) \
             .first()
-        if not item:
-            session.add(Answer(text=text, q_id=q_id, input_id=item.id))
+        session.add(Answer(text=text, q_id=q_id, input_id=item.id))
         session.commit()
         session.close()
 
@@ -143,6 +142,23 @@ class DBHandler:
         session.close()
         return [InferScore(s.score, s.best_answer.text) for s in score]
 
+    def find_embedding_vector(self, docs:[str]) -> [BestItem]:
+        # best_answer : vector = 1 : 1 (upsert)
+        session = self._connector.get_session()
+        results = []
+        for doc in docs:
+            best = BestItem()
+            item = session.query(BestEmbed) \
+                .join(BestEmbed.best_answer) \
+                .filter(BestAnswer.text == doc) \
+                .first()
+            if item:
+                best.embed = item.embed # needs to be transform
+            else:
+                best.text = doc
+            results.append(best)
+        session.close()
+        return results
 
 if __name__ == "__main__":
     RDS_URL = os.environ.get("RDS_URL")

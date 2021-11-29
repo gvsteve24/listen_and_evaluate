@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, Float, Boolean
+from sqlalchemy import Column, Integer, String, ForeignKey, Float, Boolean, LargeBinary
 from sqlalchemy.orm import declarative_base, relationship
 
 Base = declarative_base()
@@ -37,7 +37,18 @@ class BestAnswer(Base):
     id = Column(Integer, primary_key=True, autoincrement=True, nullable=False, unique=True)
     text = Column(String)
     q_id = Column(Integer, ForeignKey("question.id"), nullable=True)
+    embed_id = Column(Integer, ForeignKey("best_embed.id"), nullable=True)
     score = relationship("Score", back_populates="best_answer")
+
+
+class BestEmbed(Base):
+    __tablename__ = 'best_embed'
+
+    id = Column(Integer, primary_key=True, autoincrement=True, nullable=False, unique=True)
+    datatype = Column(String, nullable=False)
+    dimension = Column(Integer, nullable=False)
+    vector = Column(String, nullable=False)
+    best_answer = relationship("BestAnswer")
 
 
 class Score(Base):

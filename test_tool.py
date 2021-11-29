@@ -1,5 +1,3 @@
-import time
-
 from inference import Inferer
 from db_handler import DBHandler
 
@@ -26,5 +24,7 @@ class TestTool:
         if not docs:
             result = self.db_handler.retrieve_score_and_best_by_input(input_id=input_id)
         else:
-            result = self.infer_tool.calculate_score(target_text, docs)
+            # answers -> [BestItem]
+            answers = self.db_handler.find_embedding_vector(docs)
+            result = self.infer_tool.calculate_score(target_text, answers)
         return result, bool(docs)
