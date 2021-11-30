@@ -1,12 +1,9 @@
 import json
 import ast
-import os
 from collections.abc import Iterable
 
 import numpy as np
-from dotenv import load_dotenv
-from sentence_transformers import SentenceTransformer
-from sqlalchemy import create_engine, update
+from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session, contains_eager
 from sqlalchemy.sql.expression import func
 
@@ -172,19 +169,4 @@ class DBHandler:
         return vecs
 
 if __name__ == "__main__":
-    # use this to add embedding to vector column of BestAnswer Table
-    load_dotenv()
-    RDS_URL = os.getenv("RDS_URL")
-    handler = DBHandler(RDS_URL)
-    docs = []
-    f = open('./data/text_1', 'r')
-    while True:
-        rl = f.readline().strip()
-        if not rl: break
-        docs.append(rl)
-    f.close()
-    sentence_bert = SentenceTransformer('sentence-transformers/msmarco-distilbert-dot-v5')
-    doc = sentence_bert.encode(docs)
-    handler.save_vectors(docs, doc)
-    # docs = handler.retrieve_best_answer_vector(["In five years, there should be the way to get advanced to tech lead from machine learning engineering."])
-    # print(*docs)
+    pass
