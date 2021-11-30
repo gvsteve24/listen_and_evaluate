@@ -1,6 +1,9 @@
+const PROD_URL='https://ste.ml-internal.wanted.co.kr'
+const DEV_URL='http://127.0.0.1:8080'
+
 function docReady(fn) {
     if (document.readyState === "complete" || document.readyState === "interactive") {
-        console.log('document already ready');
+        console.log('document is ready');
         setTimeout(fn, 1);
     } else {
         console.log('adding event listener');
@@ -161,7 +164,7 @@ class VideoRecorder {
 
     async handleEval() {
         if (this.transcription) {
-            const response = await fetch(`http://10.110.4.38:8080/api/score?q_id=${this.question_id}&text=${this.transcription}`, {
+            const response = await fetch(`${PROD_URL}/api/score?q_id=${this.question_id}&text=${this.transcription}`, {
                 method: 'GET',
             });
 
@@ -187,7 +190,7 @@ class VideoRecorder {
             let datetime = `${currentDate.getMonth()+1}${currentDate.getDate()}_${currentDate.getHours()}:${(currentDate.getMinutes() < 10)?"0":"" + String(currentDate.getMinutes())}:${(currentDate.getSeconds() < 10)?"0":"" + String(currentDate.getSeconds())}`
             record.append("q_id", this.question_id);
             record.append("file", blob, `question_${this.question_id}_answer_${datetime}.webm`);
-            const response = await fetch(`http://10.110.4.38:8080/api/file`, {
+            const response = await fetch(`${PROD_URL}/api/file`, {
                 method: 'POST',
                 body: record
             });
@@ -205,7 +208,7 @@ class VideoRecorder {
 }
 
 !async function () {
-    const response = await fetch('http://10.110.4.38:8080/api/question');
+    const response = await fetch(`${PROD_URL}/api/question`);
     const data = await response.json();
     console.log(data);
     docReady(showData(data));

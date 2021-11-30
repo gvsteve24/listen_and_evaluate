@@ -1,3 +1,5 @@
+import numpy as np
+
 from inference import Inferer
 from db_handler import DBHandler
 
@@ -9,20 +11,15 @@ class TestTool:
         self.infer_tool = infer_tool
 
     def run_stt(self, path: str) -> [InferScore]:
-        item = self.db_handler.retrieve_one_path(path)
-        text_result = self.infer_tool.speech_to_text(item.path)
+        text_result = self.infer_tool.speech_to_text(path)
         return text_result
 
-    def run_sentence_score(self, q_id: int, target_text: str) -> ([InferScore], bool):
+    def run_sentence_score(self, target_text: str, doc: [str], embedding: np.ndarray) -> [InferScore]:
         """
-        :param q_id: question_id
-        :param target_text: normal answer
+        :param doc:
+        :param target_text: query text
+        :param embedding: best_answer embedding vector
         :return: InferScore dataclass with score and text, bool to provide flag whether to save result
         """
-        input_id = self.db_handler.retrieve_input_from_answer(target_text)
-        docs = self.db_handler.retrieve_suggested_answers(q_id=q_id, input_id=input_id)
-        if not docs:
-            result = self.db_handler.retrieve_score_and_best_by_input(input_id=input_id)
-        else:
-            result = self.infer_tool.calculate_score(target_text, docs)
-        return result, bool(docs)
+        result = self.infer_tool.calculate_score(query=target_text, docs=doc, doc_emb=embedding)
+        return result

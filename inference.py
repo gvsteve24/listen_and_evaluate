@@ -1,4 +1,6 @@
 import os
+
+import numpy as np
 import torch
 import torch.utils.data.dataloader
 
@@ -14,8 +16,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
 
 class Inferer:
-    def __init__(self, db_handler: DBHandler):
-        self.db_handler = db_handler
+    def __init__(self):
         if torch.cuda.is_available():
             self.quartznet = nemo_asr.models.ASRModel.from_pretrained(model_name="QuartzNet15x5Base-En").cuda()
         else:
@@ -32,11 +33,10 @@ class Inferer:
             text = self.quartznet.transcribe([output_path])
             return text[0]
 
-    def calculate_score(self, query: str, docs: [str]) -> [InferScore]:
+    def calculate_score(self, query: str, docs: [str], doc_emb: [np.ndarray]) -> [InferScore]:
         query_emb = self.sentence_bert.encode(query)
-        doc_emb = self.db_handler.retrieve_best_answer_vector(docs)
         if any(elem is None for elem in doc_emb):
-            doc_emb = self.sentence_bert.encode(docs)
+            doc_emb = self.sentence_bert.encode(doc_emb)
         else:
             doc_emb = torch.tensor(doc_emb).float()
 
