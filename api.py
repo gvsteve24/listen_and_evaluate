@@ -69,4 +69,4 @@ async def home(path: str = "index.html"):
     return FileResponse(file_path, media_type=mimetype)
 
 if __name__ == "__main__":
-    uvicorn.run("api:app", host='127.0.0.1', port=8080)
+    uvicorn.run("api:app", host='0.0.0.0', port=8080)
