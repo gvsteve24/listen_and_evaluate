@@ -9,7 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from starlette.responses import FileResponse
 
 from db_handler import DBHandler
-from inference import Inferer, SentenceBert
+from inference import Inferer
 from test_tool import TestTool
 
 load_dotenv()
@@ -19,8 +19,7 @@ db_url = os.getenv('DATABASE_URL')
 rds_url = os.getenv('RDS_URL')
 
 db = DBHandler(rds_url)
-bert = SentenceBert()
-inference = Inferer(input_bert=bert)
+inference = Inferer(db_handler=db)
 test_tool = TestTool(db_handler=db, infer_tool=inference)
 
 app = FastAPI()
@@ -50,7 +49,6 @@ async def infer(file: UploadFile = File(...),  q_id: int = Form(...)):
     # if answer was transcribed before (same file path), it just uses db stt
     db.save_one_path(save_path, q_id)
     stt = test_tool.run_stt(save_path)
-    print(q_id, stt, save_path)
     db.save_one_answer(q_id=q_id, text=stt, path=save_path)
     return {"stt": stt}
 

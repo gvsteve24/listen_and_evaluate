@@ -24,7 +24,5 @@ class TestTool:
         if not docs:
             result = self.db_handler.retrieve_score_and_best_by_input(input_id=input_id)
         else:
-            # answers -> [BestItem]
-            answers = self.db_handler.find_embedding_vector(docs)
-            result = self.infer_tool.calculate_score(target_text, answers)
+            result = self.infer_tool.calculate_score(target_text, docs)
         return result, bool(docs)

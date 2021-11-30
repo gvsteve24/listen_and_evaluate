@@ -1,12 +1,17 @@
+import json
+import ast
 import os
 from collections.abc import Iterable
 
-from sqlalchemy import create_engine
+import numpy as np
+from dotenv import load_dotenv
+from sentence_transformers import SentenceTransformer
+from sqlalchemy import create_engine, update
 from sqlalchemy.orm import sessionmaker, Session, contains_eager
 from sqlalchemy.sql.expression import func
 
-from model import Question, InputFile, Answer, BestAnswer, Score, BestEmbed
-from dataclass import PathResultItem, QuestionItem, InferScore, BestItem
+from model import Question, InputFile, Answer, BestAnswer, Score
+from dataclass import PathResultItem, QuestionItem, InferScore
 
 
 class DBConnectionHandler:
@@ -142,30 +147,44 @@ class DBHandler:
         session.close()
         return [InferScore(s.score, s.best_answer.text) for s in score]
 
-    def find_embedding_vector(self, docs:[str]) -> [BestItem]:
-        # best_answer : vector = 1 : 1 (upsert)
+    def retrieve_best_answer_vector(self, docs: [str]) -> [str]:
+        v_list = []
         session = self._connector.get_session()
-        results = []
         for doc in docs:
-            best = BestItem()
-            item = session.query(BestEmbed) \
-                .join(BestEmbed.best_answer) \
+            item = session.query(BestAnswer.vector) \
                 .filter(BestAnswer.text == doc) \
                 .first()
-            if item:
-                best.embed = item.embed # needs to be transform
-            else:
-                best.text = doc
-            results.append(best)
+            v_list.append(ast.literal_eval(item[0]))
         session.close()
-        return results
+        return np.array(v_list, dtype=float)
+
+    def save_vectors(self, doc, vec):
+        session = self._connector.get_session()
+        vecs = []
+        for d, e in zip(doc, vec):
+            ba = session.query(BestAnswer) \
+                .filter_by(text=d) \
+                .first()
+            ba.vector = json.dumps(e.tolist())
+            vecs.append(e)
+            session.commit()
+        session.close()
+        return vecs
 
 if __name__ == "__main__":
-    RDS_URL = os.environ.get("RDS_URL")
+    # use this to add embedding to vector column of BestAnswer Table
+    load_dotenv()
+    RDS_URL = os.getenv("RDS_URL")
     handler = DBHandler(RDS_URL)
-    score = handler.retrieve_score_and_best_by_input(input_id=5)
-    for elem in score:
-        print(elem.score, elem.best_answer.text)
-    # doc = handler.retrieve_suggested_answers(q_id=3, input_id=5)
-    # doc = handler.retrieve_input_from_answer(answer="when i first started myn internshep the onboarding process was inpari parl and initial training for developers left a lot to be desired after sharing my concerns with my trainir i was able to help develop better resources for new equobies as well as in structure and the programme entirely i feel like the show both my initiative and problem solving abilities")
-    # print(doc)
+    docs = []
+    f = open('./data/text_1', 'r')
+    while True:
+        rl = f.readline().strip()
+        if not rl: break
+        docs.append(rl)
+    f.close()
+    sentence_bert = SentenceTransformer('sentence-transformers/msmarco-distilbert-dot-v5')
+    doc = sentence_bert.encode(docs)
+    handler.save_vectors(docs, doc)
+    # docs = handler.retrieve_best_answer_vector(["In five years, there should be the way to get advanced to tech lead from machine learning engineering."])
+    # print(*docs)
